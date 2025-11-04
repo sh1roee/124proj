@@ -136,12 +136,14 @@ def tokenizer(content):
         
         tokens_found = []
         lines = file_content.split('\n')
+        # file_content = "HAI\nBTW This is a comment\nI HAS A var ITZ 10\nKTHXBYE"
+        # lines = ["HAI", "BTW This is a comment", "I HAS A var ITZ 10", "KTHXBYE"]
         
         in_multiline_comment = False  # track multiline comment state
         
         # process each line
         for line_num, line in enumerate(lines, 1):
-            
+            # skips empty lines
             if not line.strip():
                 continue
             
@@ -164,7 +166,7 @@ def tokenizer(content):
             position = 0 # start of line
             
             while position < len(line): 
-                
+                # skips spaces
                 if line[position].isspace():
                     position += 1
                     continue
@@ -174,6 +176,9 @@ def tokenizer(content):
                 # check each token pattern
                 for pattern, token_type in tokens:
                     regex = re.compile(pattern)
+                    # line is the current line of LOLCODE text to analyze
+                    # position is where in that line you currently are (moves forward as tokens are found)
+                    # .match() checks if the pattern matches startingg exactly at 'position'
                     match = regex.match(line, position)
                     
                     if match:
@@ -185,13 +190,14 @@ def tokenizer(content):
                             if lexeme.startswith('BTW'):
                                 position = len(line)  # skip to end of line
                             else:
+                            # if its multiline skip to the end of the comment
                                 position = match.end()
                             matched = True
                             break
                         
                         # add valid token
-                        tokens_found.append((lexeme, token_type))
-                        position = match.end()
+                        tokens_found.append((lexeme, token_type))       # add (lexem, category) to output list
+                        position = match.end()                          # moves scanning position to the end of the matched lexeme
                         matched = True
                         break
                 
