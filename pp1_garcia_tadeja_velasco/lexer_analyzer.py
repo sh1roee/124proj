@@ -51,7 +51,6 @@ tokens = [
     # String Operations
     (r'SMOOSH\b', 'String Concatenation'),
     
-    
     # Typecasting
     (r'IS NOW A\b', 'Typecasting Operation'),
     (r'MAEK \b', 'Typecasting Operation'),
@@ -104,22 +103,25 @@ tokens = [
     # Else, Identifiers
     (r'[a-zA-Z][a-zA-Z0-9_]*', 'Variable Identifier'),
 ]
+
+# function to display output
 def showOutput(tokens_found):
     
     if not tokens_found:
         print("No tokens found.")
         return
     
+    # print header
     print("\n{:<30} {:<30}".format("Token", "Category"))
     print("-" * 60)
     
-    for lexeme, token_type in tokens_found:
+    for lexeme, token_type in tokens_found: # iterate and print
         print("{:<30} {:<30}".format(lexeme, token_type))
     
     print("-" * 60)
     print(f"Total tokens: {len(tokens_found)}\n")
     
-
+# function to tokenize content
 def tokenizer(content):
    
     if not content:
@@ -127,20 +129,22 @@ def tokenizer(content):
     
     all_results = {}
     
+    # process each file
     for filename, file_content in content.items():
         print(f"\n--- Tokenizing and Analyzing: {filename} ---")
         
         tokens_found = []
         lines = file_content.split('\n')
         
+        # process each line
         for line_num, line in enumerate(lines, 1):
             
             if not line.strip():
                 continue
             
-            position = 0
+            position = 0 # start of line
             
-            while position < len(line):
+            while position < len(line): 
                 
                 if line[position].isspace():
                     position += 1
@@ -149,6 +153,7 @@ def tokenizer(content):
                 
                 matched = False
                 
+                # check each token pattern
                 for pattern, token_type in tokens:
                     regex = re.compile(pattern)
                     match = regex.match(line, position)
@@ -160,14 +165,14 @@ def tokenizer(content):
                         matched = True
                         break
                 
-            
+                # handle invalid tokens
                 if not matched:
                   
                     end_pos = position
                     while end_pos < len(line) and not line[end_pos].isspace():
                         end_pos += 1
                     
-                    invalid_lexeme = line[position:end_pos]
+                    invalid_lexeme = line[position:end_pos] # extract invalid token
                     tokens_found.append((invalid_lexeme, 'INVALID TOKEN'))
                     position = end_pos
         
@@ -182,6 +187,7 @@ def readFile():
     Returns a string if single file, or a dictionary of {filename: content} if directory.
     """
 
+    # get path from user
     path = input("Enter the LOLCODE file or directory path: ").strip()
     try:
         # check if path exists
@@ -195,6 +201,7 @@ def readFile():
                 print(f"Error: Invalid file type. Only .lol files are supported.")
                 return None
             
+            # read the file
             try:
                 with open(path, "r", encoding='utf-8') as f:
                     content = f.read()
@@ -211,7 +218,7 @@ def readFile():
             files_content = {}
             lol_files = [f for f in os.listdir(path) if f.endswith(".lol")]
             
-            if not lol_files:
+            if not lol_files: # no .lol files found
                 print(f"Warning: No .lol files found in directory '{path}'.")
                 return None
             
@@ -240,6 +247,7 @@ def readFile():
         print(f"Unexpected error when processing '{path}': {e}")
         return None
 
+# menu function
 def menu():
     print("-----------------------------------")
     print("LOLCODE Lexical Analyzer")
@@ -247,6 +255,7 @@ def menu():
     print("[1] Read and Analyze LOLCODE File/Directory")
     print("[2] Exit")
 
+# main function
 def main():
 
     while True:
@@ -265,6 +274,5 @@ def main():
             break
         else:
             print("Invalid choice. Please try again.")            
-    
 
 main()
