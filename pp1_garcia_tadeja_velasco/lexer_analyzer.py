@@ -9,19 +9,20 @@ import re, os
 
 tokens = [
     
-    # invalid keywords. these are declared first to avoid partial matches
-    (r'O RLY\b', 'INVALID Keyword'),
-    (r'WTF\b', 'INVALID Keyword'),
     
     # Code Delimiters
     (r'HAI\b', 'Code Delimiter'),
     (r'KTHXBYE\b', 'Code Delimiter'),
     
-    # Comments (will be detected but not added to tokens_found)
+    # Comments 
     (r'BTW.*', 'Comment Line'),
     (r'OBTW\b', 'Comment Line'),
     (r'TLDR\b', 'Comment Line'),
     
+    # Variable Declaration Section 
+    (r'WAZZUP\b', 'Variable Declaration Section'),
+    (r'BUHBYE\b', 'Variable Declaration Section'),
+
     # Variable Declaration and Assignment
     (r'I HAS A\b', 'Variable Declaration'),
     (r'ITZ\b', 'Variable Assignment'),
