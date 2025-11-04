@@ -281,7 +281,8 @@ def menu():
     print("LOLCODE Lexical Analyzer")
     print("-----------------------------------")
     print("[1] Read and Analyze LOLCODE File/Directory")
-    print("[2] Exit")
+    print("[2] Type LOLCODE String to Analyze")
+    print("[3] Exit")
 
 # main function
 def main():
@@ -297,7 +298,16 @@ def main():
                 
             else:
                 print("No content to analyze.")
+
         elif choice == '2':
+            input_string = input("Enter LOLCODE string to analyze: ")
+            if input_string.strip():
+                content = {"Input String": input_string}
+                tokenizer(content)
+            else:
+                print("No input string provided.")
+
+        elif choice == '3':
             print("Exiting the program.")
             break
         else:
