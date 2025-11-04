@@ -5,7 +5,7 @@ CMSC 124: LOLCODE Lexical Analyzer
 - Ron Russell Velasco
 '''
 
-import re, os, 
+import re, os
 
 tokens = [
     
