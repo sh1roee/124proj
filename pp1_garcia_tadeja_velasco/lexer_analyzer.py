@@ -17,7 +17,7 @@ tokens = [
     (r'HAI\b', 'Code Delimiter'),
     (r'KTHXBYE\b', 'Code Delimiter'),
     
-    # Comments
+    # Comments (will be detected but not added to tokens_found)
     (r'BTW.*', 'Comment Line'),
     (r'OBTW\b', 'Comment Line'),
     (r'TLDR\b', 'Comment Line'),
@@ -136,11 +136,29 @@ def tokenizer(content):
         tokens_found = []
         lines = file_content.split('\n')
         
+        in_multiline_comment = False  # track multiline comment state
+        
         # process each line
         for line_num, line in enumerate(lines, 1):
             
             if not line.strip():
                 continue
+            
+            # handle multiline comments
+            if in_multiline_comment:
+                # check if this line ends the multiline comment
+                if 'TLDR' in line:
+                    in_multiline_comment = False
+                continue  # skip this line entirely
+            
+            # check if this line starts a multiline comment
+            if re.match(r'^\s*OBTW\b', line):
+                in_multiline_comment = True
+                continue  # skip this line entirely
+            
+            # check if this line is a single-line comment
+            if re.match(r'^\s*BTW\b', line):
+                continue  # skip this line entirely
             
             position = 0 # start of line
             
@@ -149,7 +167,6 @@ def tokenizer(content):
                 if line[position].isspace():
                     position += 1
                     continue
-                
                 
                 matched = False
                 
@@ -160,6 +177,17 @@ def tokenizer(content):
                     
                     if match:
                         lexeme = match.group(0)
+                        
+                        # Skip comments - don't add them to tokens_found
+                        if token_type == 'Comment Line':
+                            # If it's BTW, skip the rest of the line
+                            if lexeme.startswith('BTW'):
+                                position = len(line)  # skip to end of line
+                            else:
+                                position = match.end()
+                            matched = True
+                            break
+                        
                         tokens_found.append((lexeme, token_type))
                         position = match.end()
                         matched = True
