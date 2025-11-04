@@ -179,9 +179,9 @@ def tokenizer(content):
                     if match:
                         lexeme = match.group(0)
                         
-                        # Skip comments - don't add them to tokens_found
+                        # skip comments. don't add them to tokens_found
                         if token_type == 'Comment Line':
-                            # If it's BTW, skip the rest of the line
+                            # if it's BTW, skip the rest of the line
                             if lexeme.startswith('BTW'):
                                 position = len(line)  # skip to end of line
                             else:
@@ -189,6 +189,7 @@ def tokenizer(content):
                             matched = True
                             break
                         
+                        # add valid token
                         tokens_found.append((lexeme, token_type))
                         position = match.end()
                         matched = True
@@ -211,11 +212,7 @@ def tokenizer(content):
     return all_results
         
 def readFile():
-    """
-    Reads .lol file(s) from the given path.
-    Returns a string if single file, or a dictionary of {filename: content} if directory.
-    """
-
+   
     # get path from user
     path = input("Enter the LOLCODE file or directory path: ").strip()
     try:
@@ -236,6 +233,8 @@ def readFile():
                     content = f.read()
                 
                 filename = os.path.basename(path)
+
+                #returns a dictionary with file name as key and content as value
                 return {filename: content}
             
             except Exception as e:
@@ -244,13 +243,16 @@ def readFile():
         
         # directory case
         elif os.path.isdir(path):
+
+            # initialize empty dict again
             files_content = {}
             lol_files = [f for f in os.listdir(path) if f.endswith(".lol")]
             
-            if not lol_files: # no .lol files found
+            # no .lol files found
+            if not lol_files: 
                 print(f"Warning: No .lol files found in directory '{path}'.")
                 return None
-            
+            # lop through each .lol file and add in the dict
             for filename in lol_files:
                 filepath = os.path.join(path, filename)
                 try:
@@ -266,6 +268,8 @@ def readFile():
                 return None
             
             print(f"Successfully read {len(files_content)} file(s) from directory.")
+
+            # return the dict
             return files_content
         
         else:
