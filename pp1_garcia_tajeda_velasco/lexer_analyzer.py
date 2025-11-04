@@ -104,19 +104,78 @@ tokens = [
     # Else, Identifiers
     (r'[a-zA-Z][a-zA-Z0-9_]*', 'Variable Identifier'),
 ]
-def showOutput():
-    pass
+def showOutput(tokens_found):
+    
+    if not tokens_found:
+        print("No tokens found.")
+        return
+    
+    print("\n{:<30} {:<30}".format("Token", "Category"))
+    print("-" * 60)
+    
+    for lexeme, token_type in tokens_found:
+        print("{:<30} {:<30}".format(lexeme, token_type))
+    
+    print("-" * 60)
+    print(f"Total tokens: {len(tokens_found)}\n")
+    
 
 def tokenizer(content):
    
+    if not content:
+        return None
+    
+    all_results = {}
+    
     for filename, file_content in content.items():
-        print(f"\n--- Tokenizing: {filename} ---")
+        print(f"\n--- Tokenizing and Analyzing: {filename} ---")
         
-
-
-
-
-
+        tokens_found = []
+        lines = file_content.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            
+            if not line.strip():
+                continue
+            
+            position = 0
+            
+            while position < len(line):
+                
+                if line[position].isspace():
+                    position += 1
+                    continue
+                
+                
+                matched = False
+                
+                for pattern, token_type in tokens:
+                    regex = re.compile(pattern)
+                    match = regex.match(line, position)
+                    
+                    if match:
+                        lexeme = match.group(0)
+                        tokens_found.append((lexeme, token_type))
+                        position = match.end()
+                        matched = True
+                        break
+                
+            
+                if not matched:
+                  
+                    end_pos = position
+                    while end_pos < len(line) and not line[end_pos].isspace():
+                        end_pos += 1
+                    
+                    invalid_lexeme = line[position:end_pos]
+                    tokens_found.append((invalid_lexeme, 'INVALID TOKEN'))
+                    position = end_pos
+        
+        all_results[filename] = tokens_found
+        showOutput(tokens_found)
+    
+    return all_results
+        
 def readFile():
     """
     Reads .lol file(s) from the given path.
@@ -125,12 +184,12 @@ def readFile():
 
     path = input("Enter the LOLCODE file or directory path: ").strip()
     try:
-        # Check if path exists
+        # check if path exists
         if not os.path.exists(path):
             print(f"Error: Path '{path}' does not exist.")
             return None
         
-        # Single file case
+        # single file case
         if os.path.isfile(path):
             if not path.endswith(".lol"):
                 print(f"Error: Invalid file type. Only .lol files are supported.")
@@ -147,7 +206,7 @@ def readFile():
                 print(f"Error reading file '{path}': {e}")
                 return None
         
-        # Directory case
+        # directory case
         elif os.path.isdir(path):
             files_content = {}
             lol_files = [f for f in os.listdir(path) if f.endswith(".lol")]
@@ -196,13 +255,16 @@ def main():
 
         if choice == '1':
             content = readFile()
+            if content:
+                tokenizer(content)
+                
+            else:
+                print("No content to analyze.")
         elif choice == '2':
             print("Exiting the program.")
             break
         else:
             print("Invalid choice. Please try again.")            
     
-
-
 
 main()
