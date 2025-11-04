@@ -300,7 +300,7 @@ def main():
                 print("No content to analyze.")
 
         elif choice == '2':
-            input_string = input("Enter LOLCODE string to analyze: ")
+            input_string = input("Enter LOLCODE string to analyze: ").replace("\\n", "\n")
             if input_string.strip():
                 content = {"Input String": input_string}
                 tokenizer(content)
