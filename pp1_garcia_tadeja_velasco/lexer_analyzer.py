@@ -293,7 +293,7 @@ def menu():
     print("-----------------------------------")
     print("[1] Read and Analyze LOLCODE File/Directory")
     print("[2] Type LOLCODE String to Analyze")
-    print("[3] Exit")
+    print("[3] Exit\n")
 
 # main function
 def main():
