@@ -1,5 +1,5 @@
 '''
-CMSC 124: LOLCODE Lexical Analyzer
+CMSC 124: LOLCODE Lexical Analyzer (Modified for Parser Integration)
 - Sophia Ysabel Garcia
 - James Andrei Tadeja
 - Ron Russell Velasco
@@ -8,8 +8,6 @@ CMSC 124: LOLCODE Lexical Analyzer
 import re, os
 
 tokens = [
-    
-    
     # Code Delimiters
     (r'HAI\b', 'Code Delimiter'),
     (r'KTHXBYE\b', 'Code Delimiter'),
@@ -105,26 +103,126 @@ tokens = [
     (r'[a-zA-Z][a-zA-Z0-9_]*', 'Variable Identifier'),
 ]
 
-# function to display output
-def showOutput(tokens_found):
+# Token class to hold structured token data
+class Token:
+    def __init__(self, token_type, value, line_number):
+        self.type = token_type
+        self.value = value
+        self.line_number = line_number
     
+    def __repr__(self):
+        return f"Token({self.type}, '{self.value}', line {self.line_number})"
+
+# function to display output (for menu use)
+def showOutput(tokens_found):
     if not tokens_found:
         print("No tokens found.")
         return
     
     # print header
-    print("\n{:<30} {:<30}".format("Token", "Category"))
-    print("-" * 60)
+    print("\n{:<30} {:<30} {:<10}".format("Token", "Category", "Line"))
+    print("-" * 70)
     
-    for lexeme, token_type in tokens_found: # iterate and print
-        print("{:<30} {:<30}".format(lexeme, token_type))
+    for token in tokens_found:
+        if isinstance(token, Token):
+            print("{:<30} {:<30} {:<10}".format(token.value, token.type, token.line_number))
+        else:  # backward compatibility for tuple format
+            print("{:<30} {:<30}".format(token[0], token[1]))
     
-    print("-" * 60)
+    print("-" * 70)
     print(f"Total tokens: {len(tokens_found)}\n")
+
+# NEW: Core tokenize function that returns Token objects with line numbers
+def tokenize(file_content):
+    """
+    Tokenizes LOLCODE content and returns a list of Token objects.
     
-# function to tokenize content
+    Args:
+        file_content: String containing LOLCODE source code
+    
+    Returns:
+        List of Token objects, each with type, value, and line_number
+    """
+    if not file_content:
+        return []
+    
+    tokens_found = []
+    lines = file_content.split('\n')
+    
+    in_multiline_comment = False
+    
+    # process each line
+    for line_num, line in enumerate(lines, 1):
+        # skips empty lines
+        if not line.strip():
+            continue
+        
+        # handle multiline comments
+        if in_multiline_comment:
+            if 'TLDR' in line:
+                in_multiline_comment = False
+            continue
+        
+        # check if this line starts a multiline comment
+        if re.match(r'^\s*OBTW\b', line):
+            in_multiline_comment = True
+            continue
+        
+        # check if this line is a single-line comment
+        if re.match(r'^\s*BTW\b', line):
+            continue
+        
+        position = 0
+        
+        while position < len(line):
+            # skips spaces
+            if line[position].isspace():
+                position += 1
+                continue
+            
+            matched = False
+            
+            # check each token pattern
+            for pattern, token_type in tokens:
+                regex = re.compile(pattern)
+                match = regex.match(line, position)
+                
+                if match:
+                    lexeme = match.group(0)
+                    
+                    # skip comments
+                    if token_type == 'Comment Line':
+                        if lexeme.startswith('BTW'):
+                            position = len(line)
+                        else:
+                            position = match.end()
+                        matched = True
+                        break
+                    
+                    # add valid token with line number
+                    tokens_found.append(Token(token_type, lexeme, line_num))
+                    position = match.end()
+                    matched = True
+                    break
+            
+            # handle invalid tokens
+            if not matched:
+                end_pos = position
+                while end_pos < len(line) and not line[end_pos].isspace():
+                    end_pos += 1
+                
+                invalid_lexeme = line[position:end_pos]
+                tokens_found.append(Token('INVALID TOKEN', invalid_lexeme, line_num))
+                position = end_pos
+    
+    return tokens_found
+
+# function to tokenize content (wrapper for backward compatibility)
 def tokenizer(content):
-   
+    """
+    Processes content dictionary and displays tokenized results.
+    Returns dictionary with filename as key and list of Token objects as value.
+    """
     if not content:
         return None
     
@@ -134,83 +232,8 @@ def tokenizer(content):
     for filename, file_content in content.items():
         print(f"\n--- Tokenizing and Analyzing: {filename} ---")
         
-        tokens_found = []
-        lines = file_content.split('\n')
-        # file_content = "HAI\nBTW This is a comment\nI HAS A var ITZ 10\nKTHXBYE"
-        # lines = ["HAI", "BTW This is a comment", "I HAS A var ITZ 10", "KTHXBYE"]
-        
-        in_multiline_comment = False  # track multiline comment state
-        
-        # process each line
-        for line_num, line in enumerate(lines, 1):
-            # skips empty lines
-            if not line.strip():
-                continue
-            
-            # handle multiline comments
-            if in_multiline_comment:
-                # check if this line ends the multiline comment
-                if 'TLDR' in line:
-                    in_multiline_comment = False
-                continue  # skip this line entirely
-            
-            # check if this line starts a multiline comment
-            if re.match(r'^\s*OBTW\b', line):
-                in_multiline_comment = True
-                continue  # skip this line entirely
-            
-            # check if this line is a single-line comment
-            if re.match(r'^\s*BTW\b', line):
-                continue  # skip this line entirely
-            
-            position = 0 # start of line
-            
-            while position < len(line): 
-                # skips spaces
-                if line[position].isspace():
-                    position += 1
-                    continue
-                
-                matched = False
-                
-                # check each token pattern
-                for pattern, token_type in tokens:
-                    regex = re.compile(pattern)
-                    # line is the current line of LOLCODE text to analyze
-                    # position is where in that line you currently are (moves forward as tokens are found)
-                    # .match() checks if the pattern matches startingg exactly at 'position'
-                    match = regex.match(line, position)
-                    
-                    if match:
-                        lexeme = match.group(0)
-                        
-                        # skip comments. don't add them to tokens_found
-                        if token_type == 'Comment Line':
-                            # if it's BTW, skip the rest of the line
-                            if lexeme.startswith('BTW'):
-                                position = len(line)  # skip to end of line
-                            else:
-                            # if its multiline skip to the end of the comment
-                                position = match.end()
-                            matched = True
-                            break
-                        
-                        # add valid token
-                        tokens_found.append((lexeme, token_type))       # add (lexem, category) to output list
-                        position = match.end()                          # moves scanning position to the end of the matched lexeme
-                        matched = True
-                        break
-                
-                # handle invalid tokens
-                if not matched:
-                  
-                    end_pos = position
-                    while end_pos < len(line) and not line[end_pos].isspace():
-                        end_pos += 1
-                    
-                    invalid_lexeme = line[position:end_pos] # extract invalid token
-                    tokens_found.append((invalid_lexeme, 'INVALID TOKEN'))
-                    position = end_pos
+        # use the new tokenize function
+        tokens_found = tokenize(file_content)
         
         all_results[filename] = tokens_found
         showOutput(tokens_found)
@@ -218,7 +241,6 @@ def tokenizer(content):
     return all_results
         
 def readFile():
-   
     # get path from user
     path = input("Enter the LOLCODE file or directory path: ").strip()
     try:
@@ -239,8 +261,6 @@ def readFile():
                     content = f.read()
                 
                 filename = os.path.basename(path)
-
-                #returns a dictionary with file name as key and content as value
                 return {filename: content}
             
             except Exception as e:
@@ -249,16 +269,13 @@ def readFile():
         
         # directory case
         elif os.path.isdir(path):
-
-            # initialize empty dict again
             files_content = {}
             lol_files = [f for f in os.listdir(path) if f.endswith(".lol")]
             
-            # no .lol files found
-            if not lol_files: 
+            if not lol_files:
                 print(f"Warning: No .lol files found in directory '{path}'.")
                 return None
-            # lop through each .lol file and add in the dict
+            
             for filename in lol_files:
                 filepath = os.path.join(path, filename)
                 try:
@@ -274,8 +291,6 @@ def readFile():
                 return None
             
             print(f"Successfully read {len(files_content)} file(s) from directory.")
-
-            # return the dict
             return files_content
         
         else:
@@ -297,7 +312,6 @@ def menu():
 
 # main function
 def main():
-
     while True:
         menu()
         choice = input("Enter your choice: ")
@@ -306,7 +320,6 @@ def main():
             content = readFile()
             if content:
                 tokenizer(content)
-                
             else:
                 print("No content to analyze.")
 
@@ -324,4 +337,5 @@ def main():
         else:
             print("Invalid choice. Please try again.")            
 
-main()
+if __name__ == "__main__":
+    main()
