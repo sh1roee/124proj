@@ -94,7 +94,7 @@ class SyntaxAnalyzer:
         elif self.current_token.type == 'Variable Identifier':
             var_name = self.current_token.value
             self.advance_to_next_token()
-            return var_name
+            return f"{var_name}"
         elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
             return self.parse_operation()
         elif self.current_token.type == 'String Concatenation':
@@ -207,40 +207,64 @@ class SyntaxAnalyzer:
         operands = []
         first_operand_parsed = False
 
+        # 🔥 FIX #1 — consume the FIRST SMOOSH token
+        # Your old code treated this as nested.
+        if self.current_token and \
+        self.current_token.type == 'String Concatenation' and \
+        self.current_token.value == 'SMOOSH':
+            self.advance_to_next_token()
+
         while self.current_token:
+
+            # AN separator
             if self.current_token.value == 'AN':
                 if not first_operand_parsed:
                     self.log_syntax_error("Unexpected 'AN' at the start of SMOOSH")
-                    # Consume the invalid AN to prevent infinite loop
                     self.advance_to_next_token()
                     return "SMOOSH Invalid Start with AN"
                 self.advance_to_next_token()
                 continue
 
-            if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal', 'Variable Identifier', 'YARN Literal']:
+            # Literals + variables
+            if self.current_token.type in [
+                'NUMBR Literal', 'NUMBAR Literal',
+                'TROOF Literal', 'Variable Identifier',
+                'YARN Literal'
+            ]:
                 operands.append(str(self.current_token.value))
                 first_operand_parsed = True
                 self.advance_to_next_token()
-            elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
+                continue
+
+            # Arithmetic / Boolean / Comparison expressions
+            if self.current_token.type in [
+                'Arithmetic Operation', 'Boolean Operation', 'Comparison Operation'
+            ]:
                 operation_output = self.parse_operation()
                 operands.append(operation_output)
                 first_operand_parsed = True
-            elif self.current_token.type == 'String Concatenation':
-                # Nested SMOOSH, consume it and report error
+                continue
+
+            # 🔥 FIX #2 — THIS is now ONLY triggered *after* the first SMOOSH
+            if self.current_token.type == 'String Concatenation':  # another SMOOSH
                 self.log_syntax_error("Nested SMOOSH not allowed")
                 self.advance_to_next_token()
                 return "SMOOSH Nested Error"
-            else:
-                break
 
+            # End of SMOOSH expression
+            break
+
+        # Validation
         if not operands:
             self.log_syntax_error("No operands specified after SMOOSH")
             return "SMOOSH Missing Operands"
-        elif len(operands) == 1:
+
+        if len(operands) == 1:
             self.log_syntax_error("Only one operand specified after SMOOSH, requires at least two")
             return f"SMOOSH {' + '.join(operands)} Missing AN"
 
         return f"{' + '.join(operands)}"
+
 
     def parse_variable_declaration(self):
         self.advance_to_next_token()
