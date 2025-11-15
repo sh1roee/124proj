@@ -10,7 +10,7 @@ HAI
 	VISIBLE "3. Compute square area"
 	VISIBLE "0. Exit"
 
-	VISIBLE "Choice: "
+	VISIBLE "Choice: 
 	GIMMEH choice
 
 	BOTH SAEM choice AN 1

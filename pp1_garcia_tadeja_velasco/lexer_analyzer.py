@@ -4,7 +4,6 @@ CMSC 124: LOLCODE Lexical Analyzer (Modified for Parser Integration)
 - James Andrei Tadeja
 - Ron Russell Velasco
 '''
-
 import re, os
 
 tokens = [
@@ -20,7 +19,6 @@ tokens = [
     # Variable Declaration Section 
     (r'WAZZUP\b', 'Variable Declaration Section'),
     (r'BUHBYE\b', 'Variable Declaration Section'),
-
     # Variable Declaration and Assignment
     (r'I HAS A\b', 'Variable Declaration'),
     (r'ITZ\b', 'Variable Assignment'),
@@ -57,6 +55,7 @@ tokens = [
     
     # I/O Operations
     (r'VISIBLE\b', 'Output Keyword'),
+    (r'!', 'Output Separator'),  # Newline suppression
     (r'\+', 'Output Separator'),
     (r'GIMMEH\b', 'Input Keyword'),
     
@@ -89,8 +88,8 @@ tokens = [
     (r'I IZ\b', 'Function Call'),
     (r'MKAY\b', 'Function Call Delimiter'),
     
-    # Literals
-    (r'\"[^\"]*\"', 'YARN Literal'),
+    # Literals - STRING MUST COME BEFORE OTHER PATTERNS
+    (r'\"[^\"]*\"', 'YARN Literal'),  # Closed strings
     (r'-?[0-9]+\.[0-9]+', 'NUMBAR Literal'),
     (r'-?[0-9]+', 'NUMBR Literal'),
     (r'(WIN|FAIL)', 'TROOF Literal'),
@@ -182,6 +181,22 @@ def tokenize(file_content):
             
             matched = False
             
+            # Special handling for string literals (both closed and unclosed)
+            if line[position] == '"':
+                closing_quote = line.find('"', position + 1)
+                if closing_quote == -1:
+                    # Unclosed string - mark entire rest of line as invalid
+                    invalid_string = line[position:]
+                    tokens_found.append(Token('INVALID TOKEN', invalid_string, line_num))
+                    break  # Stop processing this line
+                else:
+                    # Properly closed string
+                    string_value = line[position:closing_quote + 1]
+                    tokens_found.append(Token('YARN Literal', string_value, line_num))
+                    position = closing_quote + 1
+                    matched = True
+                    continue
+            
             # check each token pattern
             for pattern, token_type in tokens:
                 regex = re.compile(pattern)
@@ -198,6 +213,10 @@ def tokenize(file_content):
                             position = match.end()
                         matched = True
                         break
+                    
+                    # Skip YARN Literal pattern since we handle strings above
+                    if token_type == 'YARN Literal':
+                        continue
                     
                     # add valid token with line number
                     tokens_found.append(Token(token_type, lexeme, line_num))
@@ -315,14 +334,12 @@ def main():
     while True:
         menu()
         choice = input("Enter your choice: ")
-
         if choice == '1':
             content = readFile()
             if content:
                 tokenizer(content)
             else:
                 print("No content to analyze.")
-
         elif choice == '2':
             input_string = input("Enter LOLCODE string to analyze: ").replace("\\n", "\n")
             if input_string.strip():
@@ -330,7 +347,6 @@ def main():
                 tokenizer(content)
             else:
                 print("No input string provided.")
-
         elif choice == '3':
             print("Exiting the program.")
             break
