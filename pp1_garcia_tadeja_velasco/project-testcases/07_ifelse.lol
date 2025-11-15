@@ -10,7 +10,7 @@ HAI
 	VISIBLE "3. Compute square area"
 	VISIBLE "0. Exit"
 
-	VISIBLE "Choice: 
+	VISIBLE "Choice: "
 	GIMMEH choice
 
 	BOTH SAEM choice AN 1
@@ -22,7 +22,7 @@ HAI
 OBTW
 	BTW uncomment this portion if you have MEBBE
 	BTW else, this portion should be ignored
-
+ytytytytytytytyt
 		MEBBE BOTH SAEM choice AN 2
 			VISIBLE "Enter bill cost: "
 			GIMMEH input
@@ -32,7 +32,7 @@ OBTW
 			GIMMEH input
 			VISIBLE "Square Area: " PRODUKT OF input AN input
 		MEBBE BOTH SAEM choice AN 0
-			VISIBLE "Goodbye"
+			VISIBLE "Goodbye" gfgfgfgfg
 TLDR
 		NO WAI
 			VISIBLE "Invalid Input!"

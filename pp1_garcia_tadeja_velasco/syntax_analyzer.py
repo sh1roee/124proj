@@ -342,12 +342,30 @@ class SyntaxAnalyzer:
 
         output = []
         while self.current_token:
-            if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal', 'Variable Identifier']:
+            # Check for invalid tokens (like unclosed strings)
+            if self.current_token.type == 'INVALID TOKEN':
+                self.log_syntax_error(f"Invalid token in VISIBLE statement", found=self.current_token.value)
+                return
+            
+            if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal']:
                 output.append(str(self.current_token.value))
                 self.advance_to_next_token()
+            elif self.current_token.type == 'Variable Identifier':
+                # Variable identifier is only valid if it's not following a complete expression
+                # Check if previous token was a complete literal or if this is the start
+                output.append(str(self.current_token.value))
+                self.advance_to_next_token()
+                # After variable, only valid tokens are: AN, +, !, or end of line
+                if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
+                    self.log_syntax_error(f"Unexpected token after variable in VISIBLE statement", found=self.current_token.value)
+                    return
             elif self.current_token.type == 'YARN Literal':
                 output.append(self.current_token.value)
                 self.advance_to_next_token()
+                # After a string literal, only valid tokens are: AN, +, !, or end of line
+                if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
+                    self.log_syntax_error(f"Unexpected token after string literal in VISIBLE statement", found=self.current_token.value)
+                    return
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
                 result = self.parse_operation()
                 output.append(result)
