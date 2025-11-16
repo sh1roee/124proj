@@ -8,7 +8,8 @@ CMSC 124: LOLCODE Syntax Analyzer
 from lexer_analyzer import tokenize, readFile
 
 class SyntaxAnalyzer:
-    def __init__(self, tokens):
+    def __init__(self, tokens, log_function=None):
+        # existing setup
         self.lines = self._organize_tokens_by_line(tokens)
         self.current_line_number = min(self.lines.keys()) if self.lines else None
         self.current_tokens = self.lines[self.current_line_number] if self.lines else []
@@ -18,6 +19,22 @@ class SyntaxAnalyzer:
         self.variables = {"IT": {"value": None, "type": None}}
         self.in_wazzup_block = False
         self.inside_switch_block = False
+
+        self.log_function = log_function
+
+        self.output_text = ""
+
+    def emit(self, message):
+        if message is None:
+            return
+        if not isinstance(message, str):
+            message = str(message)
+        if self.log_function:
+            # send to GUI console textbox via callback
+            self.log_function(message)
+        else:
+            print(message)
+
 
     def _organize_tokens_by_line(self, tokens):
         lines = {}
@@ -43,7 +60,7 @@ class SyntaxAnalyzer:
             error_message = f"Syntax Error: {message} (line {self.current_line_number})"
 
         self.error_messages.append(error_message)
-        print(f"{error_message}")
+        self.emit(error_message + "\n")
 
     def print_variables(self):
         print("\nVariables:")
@@ -366,42 +383,50 @@ class SyntaxAnalyzer:
 
         output = []
         while self.current_token:
-            # Check for invalid tokens (like unclosed strings)
             if self.current_token.type == 'INVALID TOKEN':
                 self.log_syntax_error(f"Invalid token in VISIBLE statement", found=self.current_token.value)
                 return
-            
+
             if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal']:
                 output.append(str(self.current_token.value))
                 self.advance_to_next_token()
             elif self.current_token.type == 'Variable Identifier':
-                # Variable identifier is only valid if it's not following a complete expression
-                # Check if previous token was a complete literal or if this is the start
-                output.append(str(self.current_token.value))
+                # append variable value if exists, else name
+                varname = self.current_token.value
+                if varname in self.variables:
+                    val = self.variables[varname].get("value", "NOOB")
+                    output.append(str(val))
+                else:
+                    output.append(str(varname))
                 self.advance_to_next_token()
-                # After variable, only valid tokens are: AN, +, !, or end of line
                 if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
                     self.log_syntax_error(f"Unexpected token after variable in VISIBLE statement", found=self.current_token.value)
                     return
             elif self.current_token.type == 'YARN Literal':
                 output.append(self.current_token.value)
                 self.advance_to_next_token()
-                # After a string literal, only valid tokens are: AN, +, !, or end of line
                 if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
                     self.log_syntax_error(f"Unexpected token after string literal in VISIBLE statement", found=self.current_token.value)
                     return
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
                 result = self.parse_operation()
-                output.append(result)
+                output.append(str(result))
             elif self.current_token.type == 'String Concatenation':
                 result = self.parse_concatenation()
-                output.append(result)
-                # After SMOOSH parsing completes or errors, break to avoid loop
+                output.append(str(result))
                 break
             elif self.current_token.type in ['Parameter Delimiter', 'Output Separator']:
                 self.advance_to_next_token()
             else:
                 break
+
+        # join and emit result
+        final_output = " ".join(output).strip()
+        if final_output:
+            # store to IT and output accumulator
+            self.variables["IT"] = {"value": final_output, "type": "YARN"}
+            self.output_text += final_output + "\n"
+            self.emit(final_output + "\n")
 
     def parse_input(self):
         self.advance_to_next_token()
@@ -805,12 +830,12 @@ class SyntaxAnalyzer:
             self.advance_to_next_token()
 
     def parse_program(self):
-        print("\n" + "="*60)
-        print("SYNTAX ANALYSIS")
-        print("="*60)
+        self.emit("\n" + "="*60 + "\n")
+        self.emit("SYNTAX ANALYSIS\n")
+        self.emit("="*60 + "\n")
 
         if self.current_token and self.current_token.value == "HAI":
-            print("\nProgram starts with 'HAI'")
+            self.emit("\nProgram starts with 'HAI'\n")
             self.advance_to_next_line()
 
             while self.current_line_number is not None and self.current_token:
@@ -825,28 +850,26 @@ class SyntaxAnalyzer:
                 self.advance_to_next_line()
 
             if self.current_token and self.current_token.value == "KTHXBYE":
-                print("\nProgram ends with 'KTHXBYE'")
+                self.emit("\nProgram ends with 'KTHXBYE'\n")
             else:
                 if not any("Program must end with 'KTHXBYE'" in e for e in self.error_messages):
                     self.log_syntax_error("Program must end with 'KTHXBYE'")
         else:
             self.log_syntax_error("Program must start with 'HAI'")
 
-        print("\n" + "="*60)
-        print("SYNTAX ANALYSIS RESULTS")
-        print("="*60)
+        self.emit("\n" + "="*60 + "\n")
+        self.emit("SYNTAX ANALYSIS RESULTS\n")
+        self.emit("="*60 + "\n")
 
         if self.error_messages:
-            print("\nErrors Found:")
+            self.emit("\nErrors Found:\n")
             for error in self.error_messages:
-                print(f"  {error}")
+                self.emit(f"  {error}\n")
         else:
-            print("\nNo syntax errors found!")
+            self.emit("\nNo syntax errors found!\n")
 
-        self.print_variables()
-        print("="*60)
+        return (self.output_text.strip(), self.variables)
 
-        return self.error_messages
 
 
 def analyze_syntax(tokens):
