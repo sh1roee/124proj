@@ -195,11 +195,9 @@ class LOLCodeInterpreterGUI:
         self.log_to_console("Running Syntax Analysis & Execution...\n")
         try:
             parser_obj = SyntaxAnalyzer(tokens, log_function=self.log_to_console)
-            output_text, symbol_table = parser_obj.parse_program()
+            symbol_table = parser_obj.parse_program()
 
             self.display_symbol_table(symbol_table)
-            if output_text:
-                self.log_to_console(f"\n{output_text}")
         except Exception as e:
             self.log_to_console(f"\nSyntax/Runtime error: {e}\n")
 

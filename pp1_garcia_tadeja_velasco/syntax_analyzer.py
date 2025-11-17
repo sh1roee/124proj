@@ -6,6 +6,7 @@ CMSC 124: LOLCODE Syntax Analyzer
 '''
 
 from lexer_analyzer import tokenize, readFile
+from semantics_evaluator import SemanticsEvaluator
 
 class SyntaxAnalyzer:
     def __init__(self, tokens, log_function=None):
@@ -16,13 +17,14 @@ class SyntaxAnalyzer:
         self.current_position = 0
         self.current_token = self.current_tokens[0] if self.current_tokens else None
         self.error_messages = []
-        self.variables = {"IT": {"value": None, "type": None}}
+        self.variables = {"IT": {"value": "NOOB", "type": "NOOB"}}
         self.in_wazzup_block = False
         self.inside_switch_block = False
 
         self.log_function = log_function
-
-        self.output_text = ""
+        
+        # Semantics evaluator for 30% implementation
+        self.semantics = SemanticsEvaluator(self.variables)
 
     def emit(self, message):
         if message is None:
@@ -118,6 +120,38 @@ class SyntaxAnalyzer:
             return self.parse_concatenation()
         else:
             return None
+    
+    def evaluate_expression(self):
+        """Evaluate expression and return actual computed value"""
+        if not self.current_token:
+            return None
+
+        if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal']:
+            result = self.current_token.value
+            self.advance_to_next_token()
+            return result
+        elif self.current_token.type == 'TROOF Literal':
+            result = self.current_token.value
+            self.advance_to_next_token()
+            return result
+        elif self.current_token.type == 'YARN Literal':
+            result = self.current_token.value
+            self.advance_to_next_token()
+            return result
+        elif self.current_token.type == 'Variable Identifier':
+            var_name = self.current_token.value
+            if var_name in self.variables:
+                result = self.variables[var_name].get('value', 'NOOB')
+            else:
+                result = 'NOOB'
+            self.advance_to_next_token()
+            return result
+        elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
+            return self.evaluate_operation()
+        elif self.current_token.type == 'String Concatenation':
+            return self.evaluate_concatenation()
+        else:
+            return None
 
     def parse_operation(self):
         operation = self.current_token.value
@@ -136,6 +170,24 @@ class SyntaxAnalyzer:
         else:
             self.log_syntax_error("Unknown operation", found=operation)
             return f"Unknown operation '{operation}'"
+    
+    def evaluate_operation(self):
+        """Evaluate operation and return computed result"""
+        operation = self.current_token.value
+        self.advance_to_next_token()
+
+        if operation == 'NOT':
+            return self.evaluate_unary_operation(operation)
+        elif operation in ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF']:
+            return self.evaluate_binary_operation(operation)
+        elif operation in ['BOTH OF', 'EITHER OF', 'WON OF']:
+            return self.evaluate_boolean_operation(operation)
+        elif operation in ['BOTH SAEM', 'DIFFRINT']:
+            return self.evaluate_comparison_operation(operation)
+        elif operation == 'SMOOSH':
+            return self.evaluate_concatenation()
+        else:
+            return None
 
     def parse_unary_operation(self, operation):
         if not self.current_token:
@@ -286,6 +338,134 @@ class SyntaxAnalyzer:
 
         return f"{' + '.join(operands)}"
 
+    def evaluate_unary_operation(self, operation):
+        """Evaluate NOT operation with actual values"""
+        if not self.current_token:
+            return None
+        
+        # Get operand value
+        operand_value = self.evaluate_expression()
+        
+        if operand_value is None:
+            return None
+        
+        # Evaluate NOT
+        result = self.semantics.evaluate_unary_not(operand_value)
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": "TROOF"}
+        
+        return result
+    
+    def evaluate_binary_operation(self, operation):
+        """Evaluate arithmetic binary operations with actual values"""
+        # Get first operand
+        first_operand = self.evaluate_expression()
+        
+        # Expect AN
+        if not self.current_token or self.current_token.value != 'AN':
+            return None
+        self.advance_to_next_token()
+        
+        # Get second operand
+        second_operand = self.evaluate_expression()
+        
+        # Evaluate operation
+        result = self.semantics.evaluate_arithmetic(operation, first_operand, second_operand)
+        
+        if result is None:
+            return None
+        
+        # Determine type
+        result_type = 'NUMBAR' if isinstance(result, float) else 'NUMBR'
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": result_type}
+        
+        return result
+    
+    def evaluate_boolean_operation(self, operation):
+        """Evaluate boolean operations with actual values"""
+        # Get first operand
+        first_operand = self.evaluate_expression()
+        
+        # Expect AN
+        if not self.current_token or self.current_token.value != 'AN':
+            return None
+        self.advance_to_next_token()
+        
+        # Get second operand
+        second_operand = self.evaluate_expression()
+        
+        # Evaluate operation
+        result = self.semantics.evaluate_boolean(operation, first_operand, second_operand)
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": "TROOF"}
+        
+        return result
+    
+    def evaluate_comparison_operation(self, operation):
+        """Evaluate comparison operations with actual values"""
+        # Get first operand
+        first_operand = self.evaluate_expression()
+        
+        # Expect AN
+        if not self.current_token or self.current_token.value != 'AN':
+            return None
+        self.advance_to_next_token()
+        
+        # Get second operand
+        second_operand = self.evaluate_expression()
+        
+        # Evaluate operation
+        result = self.semantics.evaluate_comparison(operation, first_operand, second_operand)
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": "TROOF"}
+        
+        return result
+    
+    def evaluate_concatenation(self):
+        """Evaluate SMOOSH with actual values"""
+        operands = []
+        
+        # Consume SMOOSH if present
+        if self.current_token and self.current_token.type == 'String Concatenation':
+            self.advance_to_next_token()
+        
+        while self.current_token:
+            # AN separator
+            if self.current_token.value == 'AN':
+                self.advance_to_next_token()
+                continue
+            
+            # Get operand value
+            if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal', 'YARN Literal']:
+                operands.append(self.current_token.value)
+                self.advance_to_next_token()
+            elif self.current_token.type == 'Variable Identifier':
+                var_name = self.current_token.value
+                if var_name in self.variables:
+                    operands.append(self.variables[var_name].get('value', 'NOOB'))
+                else:
+                    operands.append(var_name)
+                self.advance_to_next_token()
+            elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
+                result = self.evaluate_operation()
+                operands.append(result)
+            elif self.current_token.type == 'String Concatenation':
+                break
+            else:
+                break
+        
+        # Concatenate
+        result = self.semantics.evaluate_concatenation(operands)
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": "YARN"}
+        
+        return result
 
     def parse_variable_declaration(self):
         self.advance_to_next_token()
@@ -311,7 +491,8 @@ class SyntaxAnalyzer:
             else:
                 data_type = None
 
-            value = self.parse_expression()
+            # Evaluate expression to get actual value
+            value = self.evaluate_expression()
             self.variables[variable_name] = {"value": value, "type": data_type}
         else:
             self.variables[variable_name] = {"value": "NOOB", "type": "NOOB"}
@@ -334,8 +515,22 @@ class SyntaxAnalyzer:
             self.log_syntax_error("Missing value after assignment operator")
             return
 
-        value = self.parse_expression()
-        self.variables[variable_name] = {"value": value, "type": None}
+        # Evaluate expression to get actual value
+        value = self.evaluate_expression()
+        
+        # Determine type
+        if isinstance(value, float):
+            data_type = 'NUMBAR'
+        elif isinstance(value, int):
+            data_type = 'NUMBR'
+        elif value in ['WIN', 'FAIL']:
+            data_type = 'TROOF'
+        elif isinstance(value, str):
+            data_type = 'YARN'
+        else:
+            data_type = None
+        
+        self.variables[variable_name] = {"value": value, "type": data_type}
 
     def parse_typecasting(self):
         if self.current_token.value == 'MAEK':
@@ -413,10 +608,12 @@ class SyntaxAnalyzer:
                     self.log_syntax_error(f"Unexpected token after string literal in VISIBLE statement", found=self.current_token.value)
                     return
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
-                result = self.parse_operation()
+                # Evaluate operation to get actual result
+                result = self.evaluate_operation()
                 output.append(str(result))
             elif self.current_token.type == 'String Concatenation':
-                result = self.parse_concatenation()
+                # Evaluate concatenation to get actual result
+                result = self.evaluate_concatenation()
                 output.append(str(result))
                 break
             elif self.current_token.type in ['Parameter Delimiter', 'Output Separator']:
@@ -424,12 +621,12 @@ class SyntaxAnalyzer:
             else:
                 break
 
-        # join and emit result
+        # join and store result - semantics handles output
         final_output = " ".join(output).strip()
         if final_output:
-            # store to IT and output accumulator
+            # store to IT
             self.variables["IT"] = {"value": final_output, "type": "YARN"}
-            self.output_text += final_output + "\n"
+            # Emit to console (GUI display)
             self.emit(final_output + "\n")
 
     def parse_input(self):
@@ -759,7 +956,8 @@ class SyntaxAnalyzer:
             elif self.current_token.value == 'BUHBYE' and self.in_wazzup_block:
                 self.in_wazzup_block = False
                 self.advance_to_next_token()
-            elif self.in_wazzup_block and self.current_token.value == 'I HAS A':
+            elif self.current_token.value == 'I HAS A':
+                # Allow variable declarations both inside and outside WAZZUP block
                 self.parse_variable_declaration()
             elif self.current_token.type == 'Output Keyword':
                 self.parse_print()
@@ -792,8 +990,21 @@ class SyntaxAnalyzer:
                 self.advance_to_next_token()
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation', 'String Concatenation']:
                 # Standalone expression - evaluates and stores result in IT
-                result = self.parse_expression()
-                self.variables['IT'] = {"value": result, "type": None}
+                result = self.evaluate_expression()
+                
+                # Determine type
+                if isinstance(result, float):
+                    result_type = 'NUMBAR'
+                elif isinstance(result, int):
+                    result_type = 'NUMBR'
+                elif result in ['WIN', 'FAIL']:
+                    result_type = 'TROOF'
+                elif isinstance(result, str):
+                    result_type = 'YARN'
+                else:
+                    result_type = None
+                
+                self.variables['IT'] = {"value": result, "type": result_type}
                 return
             elif self.current_token.type == 'Variable Identifier':
                 next_token = self.current_tokens[self.current_position + 1] if self.current_position + 1 < len(self.current_tokens) else None
@@ -872,7 +1083,7 @@ class SyntaxAnalyzer:
         else:
             self.emit("\nNo syntax errors found!\n")
 
-        return (self.output_text.strip(), self.variables)
+        return self.variables
 
 
 
