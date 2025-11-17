@@ -60,10 +60,26 @@ class LOLCodeInterpreterGUI:
         ctk.CTkLabel(editor_label_frame, text="Text Editor", font=("Arial", 13, "bold"),
                      text_color=TEXT).pack(side="left", anchor="w")
 
+        # line numbers + text editor container
+        editor_container = ctk.CTkFrame(editor_frame, fg_color=INNER)
+        editor_container.pack(fill="both", expand=True, padx=8, pady=(0, 12))
+
+        # line numbers gutter
+        gutter_bg = "#08121a"
+        self.line_numbers = tk.Text(editor_container, width=4, padx=4, takefocus=0,
+                                    border=0, background=gutter_bg, foreground="#6B7B8C",
+                                    font=("Courier New", 12), state="disabled", cursor="arrow")
+        self.line_numbers.pack(side="left", fill="y")
+
         # text editor textbox
-        self.text_editor = ctk.CTkTextbox(editor_frame, wrap="none", font=("Courier New", 12),
+        self.text_editor = ctk.CTkTextbox(editor_container, wrap="none", font=("Courier New", 12),
                                           fg_color="#091218", text_color=TEXT)
-        self.text_editor.pack(fill="both", expand=True, padx=8, pady=(0, 12))
+        self.text_editor.pack(side="left", fill="both", expand=True)
+
+        # bind events to sync scrolling and update line numbers
+        self.text_editor.bind("<KeyRelease>", lambda e: self.update_line_numbers())
+        self.text_editor.bind("<ButtonRelease-1>", lambda e: self.update_line_numbers())
+        self.text_editor.bind("<MouseWheel>", lambda e: self.sync_scroll())
 
         # mid lexemes panel
         lex_panel = ctk.CTkFrame(self.root, fg_color=PANEL, corner_radius=16)
@@ -154,6 +170,7 @@ class LOLCodeInterpreterGUI:
                     content = f.read()
                 self.text_editor.delete("1.0", "end")
                 self.text_editor.insert("1.0", content)
+                self.update_line_numbers()
                 self.log_to_console(f"File loaded: {os.path.basename(filename)}\n")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {e}")
@@ -180,9 +197,9 @@ class LOLCodeInterpreterGUI:
             parser_obj = SyntaxAnalyzer(tokens, log_function=self.log_to_console)
             output_text, symbol_table = parser_obj.parse_program()
 
-            if output_text:
-                self.display_console(output_text)
             self.display_symbol_table(symbol_table)
+            if output_text:
+                self.log_to_console(f"\n{output_text}")
         except Exception as e:
             self.log_to_console(f"\nSyntax/Runtime error: {e}\n")
 
@@ -216,12 +233,37 @@ class LOLCodeInterpreterGUI:
     # clear all fields
     def clear_all(self):
         self.text_editor.delete("1.0", "end")
+        self.line_numbers.configure(state="normal")
+        self.line_numbers.delete("1.0", "end")
+        self.line_numbers.configure(state="disabled")
         self.lexemes_textbox.delete("1.0", "end")
         self.symbol_textbox.delete("1.0", "end")
         self.console_textbox.delete("1.0", "end")
         self.filename_label.configure(text="(None)")
         self.current_file = None
         self.log_to_console("✓ All fields cleared\n")
+
+    # update line numbers to match editor content
+    def update_line_numbers(self):
+        try:
+            content = self.text_editor.get("1.0", "end-1c")
+            line_count = content.count('\n') + 1 if content else 1
+            line_numbers_string = "\n".join(str(i) for i in range(1, line_count + 1))
+            
+            self.line_numbers.configure(state="normal")
+            self.line_numbers.delete("1.0", "end")
+            self.line_numbers.insert("1.0", line_numbers_string)
+            self.line_numbers.configure(state="disabled")
+        except Exception:
+            pass
+
+    # sync scroll position between line numbers and editor
+    def sync_scroll(self):
+        try:
+            # get the editor's first visible line
+            self.line_numbers.yview_moveto(self.text_editor.yview()[0])
+        except Exception:
+            pass
 
     # run main loop
     def run(self):

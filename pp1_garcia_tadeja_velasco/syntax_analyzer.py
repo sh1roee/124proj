@@ -248,7 +248,11 @@ class SyntaxAnalyzer:
                 'TROOF Literal', 'Variable Identifier',
                 'YARN Literal'
             ]:
-                operands.append(str(self.current_token.value))
+                val = self.current_token.value
+                # For variables, resolve their value
+                if self.current_token.type == 'Variable Identifier' and val in self.variables:
+                    val = self.variables[val].get('value', 'NOOB')
+                operands.append(str(val))
                 first_operand_parsed = True
                 self.advance_to_next_token()
                 continue

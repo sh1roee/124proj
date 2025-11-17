@@ -2,7 +2,7 @@ BTW start of the program
 HAI
     WAZZUP
         BTW variable dec
-        I HAS A monde
+        I HAdsdsS monde
         I HAS A num ITZ 17
         I HAS A name ITZ "seventeen"
         I HAS A fnum ITZ 17.0

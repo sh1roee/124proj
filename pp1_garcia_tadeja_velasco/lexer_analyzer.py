@@ -190,8 +190,8 @@ def tokenize(file_content):
                     tokens_found.append(Token('INVALID TOKEN', invalid_string, line_num))
                     break  # Stop processing this line
                 else:
-                    # Properly closed string
-                    string_value = line[position:closing_quote + 1]
+                    # Properly closed string - strip the quotes
+                    string_value = line[position+1:closing_quote]  # Remove quotes
                     tokens_found.append(Token('YARN Literal', string_value, line_num))
                     position = closing_quote + 1
                     matched = True
