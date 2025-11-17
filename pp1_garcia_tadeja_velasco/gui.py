@@ -7,11 +7,10 @@ from lexer_analyzer import tokenize
 from syntax_analyzer import SyntaxAnalyzer
 
 # ---- Color palette chosen to match screenshot closely ----
-BG = "#0B1220"         # app background
-PANEL = "#172232"      # large rounded panels
-INNER = "#0F1A26"      # inner textbox background
+BG = "#0B1220"
+PANEL = "#172232"
+INNER = "#0F1A26"
 ACCENT_PURPLE = "#9B63FF"
-EXECUTE_BLUE = "#3D7CFF"
 CLEAR_RED = "#880808"
 TEXT = "#D6E6FF"
 
@@ -21,18 +20,18 @@ ctk.set_appearance_mode("dark")
 class LOLCodeInterpreterGUI:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("LOL CODE Interpreter")
+        self.root.title("LOCODE Interpreter")
         self.root.configure(fg_color=BG)
         self.root.geometry("1200x800")
         self.root.minsize(900, 600)
 
         self.current_file = None
         self.create_gui()
-        self._configure_grid_weights()
+        self._configure_grid_weights()  # Enable full resizing
 
     def create_gui(self):
         # Title
-        title = ctk.CTkLabel(self.root, text="LOL CODE Interpreter",
+        title = ctk.CTkLabel(self.root, text="LOLCODE Interpreter",
                              font=("Arial", 22, "bold"), text_color=ACCENT_PURPLE)
         title.grid(row=0, column=0, columnspan=3, pady=(12, 6), sticky="n")
 
@@ -52,9 +51,9 @@ class LOLCodeInterpreterGUI:
 
         editor_frame = ctk.CTkFrame(left_panel, fg_color=INNER, corner_radius=12)
         editor_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+
         editor_label_frame = ctk.CTkFrame(editor_frame, fg_color=INNER)
         editor_label_frame.pack(fill="x", padx=6, pady=(8, 4))
-
         ctk.CTkLabel(editor_label_frame, text="Text Editor", font=("Arial", 13, "bold"),
                      text_color=TEXT).pack(side="left", anchor="w")
 
@@ -91,7 +90,7 @@ class LOLCodeInterpreterGUI:
 
         sym_title_row = ctk.CTkFrame(sym_panel, fg_color=PANEL)
         sym_title_row.pack(fill="x", padx=12, pady=(10, 6))
-        ctk.CTkLabel(sym_title_row, text=" SYMBOL TABLE", font=("Arial", 14, "bold"),
+        ctk.CTkLabel(sym_title_row, text="SYMBOL TABLE", font=("Arial", 14, "bold"),
                      text_color=TEXT).pack(side="left")
 
         sym_inner = ctk.CTkFrame(sym_panel, fg_color=INNER, corner_radius=12)
@@ -127,24 +126,23 @@ class LOLCodeInterpreterGUI:
 
     def _configure_grid_weights(self):
         self.root.grid_rowconfigure(0, weight=0)
-        self.root.grid_rowconfigure(1, weight=7)
+        self.root.grid_rowconfigure(1, weight=10)
         self.root.grid_rowconfigure(2, weight=0)
-        self.root.grid_rowconfigure(3, weight=2)
-        self.root.grid_columnconfigure(0, weight=6)
+        self.root.grid_rowconfigure(3, weight=3)
+        self.root.grid_columnconfigure(0, weight=5)
         self.root.grid_columnconfigure(1, weight=3)
         self.root.grid_columnconfigure(2, weight=3)
 
     def browse_file(self):
         filename = filedialog.askopenfilename(title="Select LOL Code File",
-                                              filetypes=(("LOL files", "*.lol"), ("Text files", "*.txt"), ("All files", "*.*")))
+                                              filetypes=(("LOL files", "*.lol"), ("Text files", "*.txt"),
+                                                         ("All files", "*.*")))
         if filename:
             self.current_file = filename
-            self.filename_label.configure(text=f"{os.path.basename(filename)}")
+            self.filename_label.configure(text=os.path.basename(filename))
             try:
                 with open(filename, "r", encoding="utf-8") as f:
                     content = f.read()
-                self.file_preview.delete("1.0", "end")
-                self.file_preview.insert("1.0", content)
                 self.text_editor.delete("1.0", "end")
                 self.text_editor.insert("1.0", content)
                 self.log_to_console(f"File loaded: {os.path.basename(filename)}\n")
@@ -170,13 +168,7 @@ class LOLCodeInterpreterGUI:
         self.log_to_console("Running Syntax Analysis & Execution...\n")
         try:
             parser_obj = SyntaxAnalyzer(tokens, log_function=self.log_to_console)
-            result = parser_obj.parse_program()
-
-            if isinstance(result, tuple) and len(result) == 2:
-                output_text, symbol_table = result
-            else:
-                output_text = getattr(parser_obj, "output_text", "")
-                symbol_table = getattr(parser_obj, "variables", {})
+            output_text, symbol_table = parser_obj.parse_program()
 
             if output_text:
                 self.display_console(output_text)
@@ -187,11 +179,7 @@ class LOLCodeInterpreterGUI:
     def display_lexemes(self, tokens):
         self.lexemes_textbox.delete("1.0", "end")
         for token in tokens:
-            try:
-                line = f"{str(token.value):<28} {token.type}\n"
-            except Exception:
-                line = f"{str(token):<28}\n"
-            self.lexemes_textbox.insert("end", line)
+            self.lexemes_textbox.insert("end", f"{token.value:<25} {token.type}\n")
 
     def display_symbol_table(self, variables):
         self.symbol_textbox.delete("1.0", "end")
@@ -200,13 +188,11 @@ class LOLCodeInterpreterGUI:
         for identifier, info in variables.items():
             val = info.get("value", "NOOB")
             t = info.get("type", "")
-            line = f"{identifier:<18} {val} ({t})\n"
-            self.symbol_textbox.insert("end", line)
+            self.symbol_textbox.insert("end", f"{identifier:<18} {val} ({t})\n")
 
     def display_console(self, text):
         self.console_textbox.delete("1.0", "end")
-        if text:
-            self.console_textbox.insert("1.0", text)
+        self.console_textbox.insert("1.0", text)
 
     def log_to_console(self, msg):
         self.console_textbox.insert("end", msg)
@@ -215,7 +201,6 @@ class LOLCodeInterpreterGUI:
 
     def clear_all(self):
         self.text_editor.delete("1.0", "end")
-        self.file_preview.delete("1.0", "end")
         self.lexemes_textbox.delete("1.0", "end")
         self.symbol_textbox.delete("1.0", "end")
         self.console_textbox.delete("1.0", "end")
