@@ -10,7 +10,7 @@ from semantics_analyzer import SemanticsEvaluator
 
 class SyntaxAnalyzer:
     def __init__(self, tokens, log_function=None):
-        # existing setup
+        # organize tokens by line number
         self.lines = self._organize_tokens_by_line(tokens)
         self.current_line_number = min(self.lines.keys()) if self.lines else None
         self.current_tokens = self.lines[self.current_line_number] if self.lines else []
@@ -23,7 +23,7 @@ class SyntaxAnalyzer:
 
         self.log_function = log_function
         
-        # Semantics evaluator for 30% implementation
+        # semantics evaluator
         self.semantics = SemanticsEvaluator(self.variables)
 
     def emit(self, message):
@@ -32,7 +32,7 @@ class SyntaxAnalyzer:
         if not isinstance(message, str):
             message = str(message)
         if self.log_function:
-            # send to GUI console textbox via callback
+            # send to GUI console
             self.log_function(message)
         else:
             print(message)
@@ -122,7 +122,7 @@ class SyntaxAnalyzer:
             return None
     
     def evaluate_expression(self):
-        """Evaluate expression and return actual computed value"""
+        # evaluate an expression and return actual computed value
         if not self.current_token:
             return None
 
@@ -174,7 +174,7 @@ class SyntaxAnalyzer:
             return f"Unknown operation '{operation}'"
     
     def evaluate_operation(self):
-        """Evaluate operation and return computed result"""
+        # evaluate operation and return computed result
         operation = self.current_token.value
         self.advance_to_next_token()
 
@@ -280,8 +280,7 @@ class SyntaxAnalyzer:
         operands = []
         first_operand_parsed = False
 
-        # 🔥 FIX #1 — consume the FIRST SMOOSH token
-        # Your old code treated this as nested.
+        # consume the first SMOOSH token if present
         if self.current_token and \
         self.current_token.type == 'String Concatenation' and \
         self.current_token.value == 'SMOOSH':
@@ -322,8 +321,8 @@ class SyntaxAnalyzer:
                 first_operand_parsed = True
                 continue
 
-            # 🔥 FIX #2 — THIS is now ONLY triggered *after* the first SMOOSH
-            if self.current_token.type == 'String Concatenation':  # another SMOOSH
+            # nested SMOOSH not allowed
+            if self.current_token.type == 'String Concatenation':
                 self.log_syntax_error("Nested SMOOSH not allowed")
                 self.advance_to_next_token()
                 return "SMOOSH Nested Error"
@@ -343,7 +342,7 @@ class SyntaxAnalyzer:
         return f"{' + '.join(operands)}"
 
     def evaluate_unary_operation(self, operation):
-        """Evaluate NOT operation with actual values"""
+        # evaluate NOT operation with actual values
         if not self.current_token:
             return None
         
@@ -362,8 +361,8 @@ class SyntaxAnalyzer:
         return result
     
     def evaluate_binary_operation(self, operation):
-        """Evaluate arithmetic binary operations with actual values"""
-        # Get first operand
+        # evaluate arithmetic binary operations with actual values
+        # get first operand
         first_operand = self.evaluate_expression()
         
         # Expect AN
@@ -389,8 +388,8 @@ class SyntaxAnalyzer:
         return result
     
     def evaluate_boolean_operation(self, operation):
-        """Evaluate boolean operations with actual values"""
-        # Get first operand
+        # evaluate boolean operations with actual values
+        # get first operand
         first_operand = self.evaluate_expression()
         
         # Expect AN
@@ -410,8 +409,8 @@ class SyntaxAnalyzer:
         return result
     
     def evaluate_comparison_operation(self, operation):
-        """Evaluate comparison operations with actual values"""
-        # Get first operand
+        # evaluate comparison operations with actual values
+        # get first operand
         first_operand = self.evaluate_expression()
         
         # Expect AN
@@ -431,7 +430,7 @@ class SyntaxAnalyzer:
         return result
     
     def evaluate_infinite_arity_operation(self, operation):
-        """Evaluate ALL OF or ANY OF operations with actual values"""
+        # evaluate ALL OF or ANY OF operations with actual values
         operands = []
         
         while self.current_token and self.current_token.value != 'MKAY':
@@ -475,7 +474,7 @@ class SyntaxAnalyzer:
         return result
     
     def evaluate_concatenation(self):
-        """Evaluate SMOOSH with actual values"""
+        # evaluate SMOOSH with actual values
         operands = []
         
         # Consume SMOOSH if present
@@ -581,7 +580,7 @@ class SyntaxAnalyzer:
         self.variables[variable_name] = {"value": value, "type": data_type}
 
     def evaluate_typecasting(self):
-        """Evaluate MAEK A <var> <type> typecasting and return the casted value"""
+        # evaluate MAEK A <var> <type> typecasting and return the casted value
         if self.current_token.value == 'MAEK':
             self.advance_to_next_token()
 
@@ -1202,7 +1201,7 @@ class SyntaxAnalyzer:
 
 
 def analyze_syntax(tokens):
-    """Analyze syntax from tokenized LOLCODE"""
+    # analyze syntax from tokenized LOLCODE
     analyzer = SyntaxAnalyzer(tokens)
     return analyzer.parse_program()
 

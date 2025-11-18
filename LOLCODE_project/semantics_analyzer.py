@@ -44,7 +44,7 @@ class SemanticsEvaluator:
 
     # evaluate boolean operations
     def evaluate_boolean(self, operation, operand1, operand2):
-        """Evaluate boolean operations"""
+        # evaluate boolean operations
         val1 = self._to_bool(operand1)
         val2 = self._to_bool(operand2)
         
@@ -81,7 +81,7 @@ class SemanticsEvaluator:
     
     # evaluate unary NOT operation
     def evaluate_unary_not(self, operand):
-        """Evaluate NOT operation"""
+        # evaluate NOT operation
         val = self._to_bool(operand)
         return 'FAIL' if val else 'WIN'
     

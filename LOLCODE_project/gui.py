@@ -17,7 +17,7 @@ ctk.set_appearance_mode("dark") # modes : "dark", "light"
 
 # main gui class
 class LOLCodeInterpreterGUI:  
-    def __init__(self): # default constructor
+    def __init__(self): # default 
         self.root = ctk.CTk()
         self.root.title("LOCODE Interpreter")
         self.root.configure(fg_color=BG)
@@ -66,9 +66,10 @@ class LOLCodeInterpreterGUI:
 
         # line numbers gutter
         gutter_bg = "#08121a"
-        self.line_numbers = tk.Text(editor_container, width=4, padx=4, takefocus=0,
+        self.line_numbers = tk.Text(editor_container, width=4, padx=4, pady=8, takefocus=0,
                                     border=0, background=gutter_bg, foreground="#6B7B8C",
-                                    font=("Courier New", 12), state="disabled", cursor="arrow")
+                                    font=("Courier New", 12), state="disabled", cursor="arrow",
+                                    spacing1=0, spacing2=0, spacing3=0)
         self.line_numbers.pack(side="left", fill="y")
 
         # text editor textbox
