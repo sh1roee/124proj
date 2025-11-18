@@ -1,4 +1,4 @@
-HAI 1.2
+
 
 BTW Simple Addition Test
 VISIBLE "=== Simple Addition ==="

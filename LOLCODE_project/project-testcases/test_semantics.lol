@@ -1,4 +1,4 @@
-HAI 1.2
+HAI 
 
 BTW Test arithmetic operations
 WAZZUP
