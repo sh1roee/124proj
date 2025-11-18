@@ -150,6 +150,8 @@ class SyntaxAnalyzer:
             return self.evaluate_operation()
         elif self.current_token.type == 'String Concatenation':
             return self.evaluate_concatenation()
+        elif self.current_token.type == 'Typecasting Operation':
+            return self.evaluate_typecasting()
         else:
             return None
 
@@ -184,6 +186,8 @@ class SyntaxAnalyzer:
             return self.evaluate_boolean_operation(operation)
         elif operation in ['BOTH SAEM', 'DIFFRINT']:
             return self.evaluate_comparison_operation(operation)
+        elif operation in ['ALL OF', 'ANY OF']:
+            return self.evaluate_infinite_arity_operation(operation)
         elif operation == 'SMOOSH':
             return self.evaluate_concatenation()
         else:
@@ -426,6 +430,50 @@ class SyntaxAnalyzer:
         
         return result
     
+    def evaluate_infinite_arity_operation(self, operation):
+        """Evaluate ALL OF or ANY OF operations with actual values"""
+        operands = []
+        
+        while self.current_token and self.current_token.value != 'MKAY':
+            # Skip AN delimiter
+            if self.current_token.value == 'AN':
+                self.advance_to_next_token()
+                continue
+            
+            # Evaluate operand
+            operand = self.evaluate_expression()
+            if operand is not None:
+                operands.append(operand)
+            else:
+                break
+        
+        # Consume MKAY
+        if self.current_token and self.current_token.value == 'MKAY':
+            self.advance_to_next_token()
+        
+        # Perform the operation
+        if operation == 'ALL OF':
+            # All operands must be truthy (WIN or non-zero/non-empty)
+            result = 'WIN'
+            for op in operands:
+                if op == 'FAIL' or op == 0 or op == 0.0 or op == '' or op == 'NOOB':
+                    result = 'FAIL'
+                    break
+        elif operation == 'ANY OF':
+            # At least one operand must be truthy
+            result = 'FAIL'
+            for op in operands:
+                if op != 'FAIL' and op != 0 and op != 0.0 and op != '' and op != 'NOOB':
+                    result = 'WIN'
+                    break
+        else:
+            result = 'FAIL'
+        
+        # Store in IT
+        self.variables['IT'] = {"value": result, "type": "TROOF"}
+        
+        return result
+    
     def evaluate_concatenation(self):
         """Evaluate SMOOSH with actual values"""
         operands = []
@@ -532,6 +580,78 @@ class SyntaxAnalyzer:
         
         self.variables[variable_name] = {"value": value, "type": data_type}
 
+    def evaluate_typecasting(self):
+        """Evaluate MAEK A <var> <type> typecasting and return the casted value"""
+        if self.current_token.value == 'MAEK':
+            self.advance_to_next_token()
+
+            if not self.current_token or self.current_token.value != 'A':
+                self.log_syntax_error("Expected 'A' after 'MAEK'")
+                return None
+
+            self.advance_to_next_token()
+
+            if not self.current_token:
+                self.log_syntax_error("Expected value to cast after 'MAEK A'")
+                return None
+
+            # Get the value to cast
+            if self.current_token.type == 'Variable Identifier':
+                var_name = self.current_token.value
+                if var_name in self.variables:
+                    cast_value = self.variables[var_name].get('value', 'NOOB')
+                else:
+                    cast_value = 'NOOB'
+            else:
+                cast_value = self.current_token.value
+            
+            self.advance_to_next_token()
+
+            if not self.current_token or self.current_token.type != 'Type Literal':
+                self.log_syntax_error("Expected type literal after value in 'MAEK A' operation")
+                return None
+
+            target_type = self.current_token.value
+            self.advance_to_next_token()
+
+            # Perform the type conversion
+            try:
+                if target_type == 'TROOF':
+                    # Convert to boolean
+                    if cast_value == 'NOOB' or cast_value == '' or cast_value == 0 or cast_value == 0.0:
+                        return 'FAIL'
+                    else:
+                        return 'WIN'
+                elif target_type == 'NUMBR':
+                    # Convert to integer
+                    if isinstance(cast_value, str):
+                        if cast_value == 'WIN':
+                            return 1
+                        elif cast_value == 'FAIL':
+                            return 0
+                        else:
+                            return int(float(cast_value))
+                    return int(cast_value)
+                elif target_type == 'NUMBAR':
+                    # Convert to float
+                    if isinstance(cast_value, str):
+                        if cast_value == 'WIN':
+                            return 1.0
+                        elif cast_value == 'FAIL':
+                            return 0.0
+                        else:
+                            return float(cast_value)
+                    return float(cast_value)
+                elif target_type == 'YARN':
+                    # Convert to string
+                    return str(cast_value)
+                else:
+                    return cast_value
+            except (ValueError, TypeError):
+                return 'NOOB'
+        
+        return None
+
     def parse_typecasting(self):
         if self.current_token.value == 'MAEK':
             self.advance_to_next_token()
@@ -598,15 +718,9 @@ class SyntaxAnalyzer:
                 else:
                     output.append(str(varname))
                 self.advance_to_next_token()
-                if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
-                    self.log_syntax_error(f"Unexpected token after variable in VISIBLE statement", found=self.current_token.value)
-                    return
             elif self.current_token.type == 'YARN Literal':
                 output.append(self.current_token.value)
                 self.advance_to_next_token()
-                if self.current_token and self.current_token.type not in ['Parameter Delimiter', 'Output Separator']:
-                    self.log_syntax_error(f"Unexpected token after string literal in VISIBLE statement", found=self.current_token.value)
-                    return
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
                 # Evaluate operation to get actual result
                 result = self.evaluate_operation()

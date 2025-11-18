@@ -50,7 +50,7 @@ tokens = [
     
     # Typecasting
     (r'IS NOW A\b', 'Typecasting Operation'),
-    (r'MAEK \b', 'Typecasting Operation'),
+    (r'MAEK\b', 'Typecasting Operation'),
     (r'A\b', 'Typecasting Operation'),
     
     # I/O Operations
