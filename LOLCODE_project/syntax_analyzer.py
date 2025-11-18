@@ -39,8 +39,10 @@ class SyntaxAnalyzer:
 
 
     def _organize_tokens_by_line(self, tokens):
+        # group all tokens by their line numbers so we can process line by line
         lines = {}
         for token in tokens:
+            # skip comment tokens since we dont need to parse them
             if token.type != "Comment Line":
                 if token.line_number not in lines:
                     lines[token.line_number] = []
@@ -48,6 +50,7 @@ class SyntaxAnalyzer:
         return lines
 
     def log_syntax_error(self, message, expected=None, found=None):
+        # format error message depending on what info we have
         if expected and found:
             error_message = (
                 f"Syntax Error: {message}. Expected '{expected}', but found '{found}' "
@@ -61,6 +64,7 @@ class SyntaxAnalyzer:
         else:
             error_message = f"Syntax Error: {message} (line {self.current_line_number})"
 
+        # save error and display it
         self.error_messages.append(error_message)
         self.emit(error_message + "\n")
 
@@ -72,50 +76,62 @@ class SyntaxAnalyzer:
             print(f"  {identifier}: value={value}, type={var_type}")
 
     def advance_to_next_line(self):
+        # move to the next line of code
         if self.current_line_number is None:
             self.current_tokens = []
             self.current_token = None
             return
 
+        # get all line numbers in order
         line_numbers = sorted(self.lines.keys())
         current_index = line_numbers.index(self.current_line_number)
         next_line_index = current_index + 1
         
+        # if theres a next line, move to it
         if next_line_index < len(line_numbers):
             self.current_line_number = line_numbers[next_line_index]
             self.current_tokens = self.lines[self.current_line_number]
             self.current_position = 0
             self.current_token = self.current_tokens[0] if self.current_tokens else None
         else:
+            # no more lines, were done
             self.current_tokens = []
             self.current_token = None
             self.current_line_number = None
 
     def advance_to_next_token(self):
+        # move to the next token on the current line
         if self.current_position < len(self.current_tokens) - 1:
             self.current_position += 1
             self.current_token = self.current_tokens[self.current_position]
         else:
+            # no more tokens on this line
             self.current_token = None
 
     def parse_expression(self):
+        # parse any kind of expression and return its string representation
         if not self.current_token:
             return None
 
+        # handle literals (numbers, booleans)
         if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal']:
             result = self.current_token.value
             self.advance_to_next_token()
             return result
+        # handle strings
         elif self.current_token.type == 'YARN Literal':
             result = self.current_token.value
             self.advance_to_next_token()
             return result
+        # handle variables
         elif self.current_token.type == 'Variable Identifier':
             var_name = self.current_token.value
             self.advance_to_next_token()
             return f"{var_name}"
+        # handle operations (arithmetic, boolean, comparison)
         elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
             return self.parse_operation()
+        # handle string concatenation
         elif self.current_token.type == 'String Concatenation':
             return self.parse_concatenation()
         else:
@@ -126,18 +142,22 @@ class SyntaxAnalyzer:
         if not self.current_token:
             return None
 
+        # for number literals, just return the value
         if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal']:
             result = self.current_token.value
             self.advance_to_next_token()
             return result
+        # for boolean literals (WIN/FAIL)
         elif self.current_token.type == 'TROOF Literal':
             result = self.current_token.value
             self.advance_to_next_token()
             return result
+        # for string literals
         elif self.current_token.type == 'YARN Literal':
             result = self.current_token.value
             self.advance_to_next_token()
             return result
+        # for variables, look up their value in the symbol table
         elif self.current_token.type == 'Variable Identifier':
             var_name = self.current_token.value
             if var_name in self.variables:
@@ -146,27 +166,36 @@ class SyntaxAnalyzer:
                 result = 'NOOB'
             self.advance_to_next_token()
             return result
+        # for operations, evaluate them and return the result
         elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
             return self.evaluate_operation()
+        # for string concatenation
         elif self.current_token.type == 'String Concatenation':
             return self.evaluate_concatenation()
+        # for typecasting (MAEK A x TROOF)
         elif self.current_token.type == 'Typecasting Operation':
             return self.evaluate_typecasting()
         else:
             return None
 
     def parse_operation(self):
+        # figure out what kind of operation this is and parse it accordingly
         operation = self.current_token.value
         self.advance_to_next_token()
 
+        # unary operation (only takes one operand)
         if operation == 'NOT':
             return self.parse_unary_operation(operation)
+        # arithmetic operations (take two operands)
         elif operation in ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF']:
             return self.parse_binary_operation(operation)
+        # infinite arity operations (can take multiple operands)
         elif operation in ['ALL OF', 'ANY OF']:
             return self.parse_infinite_arity_operation(operation)
+        # boolean and comparison operations (take two operands)
         elif operation in ['BOTH OF', 'EITHER OF', 'WON OF', 'BOTH SAEM', 'DIFFRINT']:
             return self.parse_binary_operation(operation)
+        # string concatenation
         elif operation == 'SMOOSH':
             return self.parse_concatenation()
         else:
@@ -194,14 +223,17 @@ class SyntaxAnalyzer:
             return None
 
     def parse_unary_operation(self, operation):
+        # parse operations that only take one operand (like NOT)
         if not self.current_token:
             self.log_syntax_error(f"Expected operand for '{operation}'")
             return f"{operation} Missing Operand"
 
+        # check if its a simple value or variable
         if self.current_token.type in ['TROOF Literal', 'Variable Identifier']:
             operand = self.current_token.value
             self.advance_to_next_token()
             return f"{operation} {operand}"
+        # or if its another operation (nested)
         elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
             operand = self.parse_operation()
             return f"{operation} {operand}"
@@ -210,30 +242,37 @@ class SyntaxAnalyzer:
             return f"{operation} Invalid Operand"
 
     def parse_binary_operation(self, operation):
+        # parse operations that take two operands (like SUM OF x AN y)
         def parse_single_operand():
+            # helper function to parse one operand
             if not self.current_token:
                 return None
 
+            # check if its a literal or variable
             if self.current_token.type in ['NUMBR Literal', 'NUMBAR Literal', 'TROOF Literal', 'Variable Identifier', 'YARN Literal']:
                 operand = self.current_token.value
                 self.advance_to_next_token()
                 return operand
+            # or if its a nested operation
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
                 return self.parse_operation()
             else:
                 return None
 
+        # get the first operand
         first_operand = parse_single_operand()
         if first_operand is None:
             self.log_syntax_error(f"Missing first operand for '{operation}'")
             return f"{operation} Missing First Operand"
 
+        # expect AN keyword between operands
         if not self.current_token or self.current_token.value != 'AN':
             self.log_syntax_error(f"Missing 'AN' after first operand in '{operation}'")
             return f"{operation} {first_operand} Missing AN"
 
         self.advance_to_next_token()
 
+        # get the second operand
         second_operand = parse_single_operand()
         if second_operand is None:
             self.log_syntax_error(f"Missing second operand for '{operation}'")
@@ -242,10 +281,13 @@ class SyntaxAnalyzer:
         return f"{operation} {first_operand} AN {second_operand}"
 
     def parse_infinite_arity_operation(self, operation):
+        # parse operations that can take multiple operands (like ALL OF x AN y AN z MKAY)
         operands = []
         first_operand_parsed = False
 
+        # keep going until we hit MKAY
         while self.current_token and self.current_token.value != 'MKAY':
+            # handle AN separators between operands
             if self.current_token.value == 'AN':
                 if not first_operand_parsed:
                     self.log_syntax_error(f"Unexpected 'AN' at the start of {operation}")
@@ -253,10 +295,12 @@ class SyntaxAnalyzer:
                 self.advance_to_next_token()
                 continue
 
+            # parse literals and variables
             if self.current_token.type in ['TROOF Literal', 'NUMBR Literal', 'NUMBAR Literal', 'Variable Identifier', 'YARN Literal']:
                 operands.append(self.current_token.value)
                 first_operand_parsed = True
                 self.advance_to_next_token()
+            # parse nested operations
             elif self.current_token.type in ['Arithmetic Operation', 'Boolean Operation', 'Comparison Operation']:
                 operand = self.parse_operation()
                 operands.append(operand)
@@ -264,12 +308,14 @@ class SyntaxAnalyzer:
             else:
                 break
 
+        # make sure we have MKAY at the end
         if not self.current_token or self.current_token.value != 'MKAY':
             self.log_syntax_error(f"Missing 'MKAY' at the end of {operation}")
             return f"{operation} {' AN '.join(operands)} Missing MKAY"
 
         self.advance_to_next_token()
 
+        # make sure we got at least one operand
         if not operands:
             self.log_syntax_error(f"No operands provided for {operation}")
             return f"{operation} Missing Operands"
@@ -346,16 +392,16 @@ class SyntaxAnalyzer:
         if not self.current_token:
             return None
         
-        # Get operand value
+        # get the operand value
         operand_value = self.evaluate_expression()
         
         if operand_value is None:
             return None
         
-        # Evaluate NOT
+        # do the NOT operation using semantics
         result = self.semantics.evaluate_unary_not(operand_value)
         
-        # Store in IT
+        # store result in IT variable
         self.variables['IT'] = {"value": result, "type": "TROOF"}
         
         return result
@@ -365,24 +411,21 @@ class SyntaxAnalyzer:
         # get first operand
         first_operand = self.evaluate_expression()
         
-        # Expect AN
+        # expect AN keyword between operands
         if not self.current_token or self.current_token.value != 'AN':
             return None
         self.advance_to_next_token()
         
-        # Get second operand
+        # get second operand
         second_operand = self.evaluate_expression()
         
-        # Evaluate operation
+        # do the actual arithmetic using semantics
         result = self.semantics.evaluate_arithmetic(operation, first_operand, second_operand)
         
-        if result is None:
-            return None
-        
-        # Determine type
+        # figure out if result is float or int
         result_type = 'NUMBAR' if isinstance(result, float) else 'NUMBR'
         
-        # Store in IT
+        # store result in IT variable
         self.variables['IT'] = {"value": result, "type": result_type}
         
         return result
@@ -392,18 +435,18 @@ class SyntaxAnalyzer:
         # get first operand
         first_operand = self.evaluate_expression()
         
-        # Expect AN
+        # expect AN keyword
         if not self.current_token or self.current_token.value != 'AN':
             return None
         self.advance_to_next_token()
         
-        # Get second operand
+        # get second operand
         second_operand = self.evaluate_expression()
         
-        # Evaluate operation
+        # do the boolean operation using semantics
         result = self.semantics.evaluate_boolean(operation, first_operand, second_operand)
         
-        # Store in IT
+        # store result in IT variable
         self.variables['IT'] = {"value": result, "type": "TROOF"}
         
         return result
@@ -413,18 +456,18 @@ class SyntaxAnalyzer:
         # get first operand
         first_operand = self.evaluate_expression()
         
-        # Expect AN
+        # expect AN keyword
         if not self.current_token or self.current_token.value != 'AN':
             return None
         self.advance_to_next_token()
         
-        # Get second operand
+        # get second operand
         second_operand = self.evaluate_expression()
         
-        # Evaluate operation
+        # do the comparison using semantics
         result = self.semantics.evaluate_comparison(operation, first_operand, second_operand)
         
-        # Store in IT
+        # store result in IT variable
         self.variables['IT'] = {"value": result, "type": "TROOF"}
         
         return result
