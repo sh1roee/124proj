@@ -21,7 +21,6 @@ HAI
     VISIBLE "x: " + FAIL + ", y: " + WIN
     x R FAIL
 
-    VISIBLE 
     VISIBLE BOTH OF x AN y
     VISIBLE EITHER OF x AN y
     VISIBLE WON OF x AN y

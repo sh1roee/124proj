@@ -15,7 +15,6 @@ HAI
 
 	choice
 	WTF?
-
 		OMG 1
 			VISIBLE "Enter birth year: "
 			GIMMEH input
@@ -31,7 +30,6 @@ HAI
 			GIMMEH input
 			VISIBLE "Square Area: " PRODUKT OF input AN input
 			GTFO
-			
 		OMG 0
 			VISIBLE "Goodbye"
 		OMGWTF

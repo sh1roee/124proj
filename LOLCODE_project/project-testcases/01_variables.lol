@@ -2,7 +2,7 @@ BTW start of the program
 HAI
     WAZZUP
         BTW variable dec
-        I HAdsdsS monde
+        I HAS A monde
         I HAS A num ITZ 17
         I HAS A name ITZ "seventeen"
         I HAS A fnum ITZ 17.0
@@ -25,8 +25,9 @@ HAI
     VISIBLE sum
     VISIBLE diff
     VISIBLE prod
-    VISIBE quo
+    VISIBLE quo
 
     BTW print expressions
     VISIBLE SUM OF PRODUKT OF 3 AN 5 AN BIGGR OF DIFF OF 17 AN 2 AN 5
     VISIBLE BIGGR OF PRODUKT OF 11 AN 2 AN QUOSHUNT OF SUM OF 3 AN 5 AN 2
+KTHXBYE
