@@ -6,7 +6,7 @@ CMSC 124: LOLCODE Syntax Analyzer
 '''
 
 from lexer_analyzer import tokenize, readFile
-from semantics_evaluator import SemanticsEvaluator
+from semantics_analyzer import SemanticsEvaluator
 
 class SyntaxAnalyzer:
     def __init__(self, tokens, log_function=None):
